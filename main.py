@@ -80,29 +80,34 @@ elif menu == "Analytics":
     if not df_chart.empty and "Country" in df_chart.columns and "Price" in df_chart.columns:
         df_grouped = df_chart.groupby("Country")["Price"].sum().reset_index()
 
-        # ✅ Graph with Proper Formatting
-        fig = go.Figure()
+        # ✅ Pie Chart with Values
+        fig_pie = go.Figure(data=[
+            go.Pie(labels=df_grouped["Country"], values=df_grouped["Price"], hole=0.3, textinfo='label+percent+value')
+        ])
+        fig_pie.update_layout(title_text="Shipment Distribution by Country")
 
-        fig.add_trace(go.Bar(
+        # ✅ Bar Chart
+        fig_bar = go.Figure()
+        fig_bar.add_trace(go.Bar(
             x=df_grouped["Country"],
             y=df_grouped["Price"],
             marker=dict(color="blue"),
             text=df_grouped["Price"],
             textposition="outside"
         ))
-
-        # ✅ Graph Layout Formatting
-        fig.update_layout(
+        fig_bar.update_layout(
             title="Total Shipment Value by Country",
             xaxis_title="Country",
             yaxis_title="Total Price (USD)",
-            template="plotly_dark",  # ✅ Better Theme
+            template="plotly_dark",
             font=dict(size=14),
             margin=dict(l=40, r=40, t=40, b=40),
             height=500
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        # ✅ Show Charts
+        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_bar, use_container_width=True)
     else:
         st.warning("No valid data available for analytics. Please upload data first!")
 
