@@ -3,6 +3,21 @@ import pandas as pd
 import sqlite3
 import sqlite3
 conn = sqlite3.connect(":memory:")  # In-memory database for Streamlit Cloud
+import pandas as pd
+import streamlit as st
+
+# Excel file read karte waqt openpyxl ka use karo
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx", "csv"])
+
+if uploaded_file is not None:
+    try:
+        if uploaded_file.name.endswith(".xlsx"):
+            df = pd.read_excel(uploaded_file, engine="openpyxl")  # 🔥 Fix applied
+        else:
+            df = pd.read_csv(uploaded_file)
+        st.write("Uploaded Data:", df)
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
 
 
 # Database setup
