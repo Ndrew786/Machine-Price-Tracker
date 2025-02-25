@@ -9,21 +9,15 @@ if "machines_data" not in st.session_state:
 
 # Streamlit Page Config with Background
 st.set_page_config(page_title="Bonhoeffer Machine Tracker", layout="wide")
+
 st.markdown(
     """
     <style>
-    .main {
-        background: linear-gradient(135deg, #1e3c72, #2a5298);
-        color: white;
-    }
+    .main { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
     .title {
-        text-align: center;
-        font-size: 36px;
-        font-weight: bold;
-        color: #ffffff;
+        text-align: center; font-size: 36px; font-weight: bold; color: #ffffff;
         background: -webkit-linear-gradient(left, #ff7e5f, #feb47b);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     </style>
     """,
@@ -41,14 +35,15 @@ if menu == "Home":
     st.markdown("""<h1 class='title'>Bonhoeffer Machine Tracker</h1>""", unsafe_allow_html=True)
     st.image("https://source.unsplash.com/1600x900/?factory,machine", use_container_width=True)
 
-# ✅ Order Tab
+# ✅ Order Tab (Prevent Duplicate Data)
 elif menu == "Order":
     st.title("Upload Order Data")
     uploaded_order = st.file_uploader("Upload Order File (Excel/CSV)", type=["xlsx", "csv"], key="order_upload")
     if uploaded_order is not None:
         df_order = pd.read_excel(uploaded_order, engine="openpyxl") if uploaded_order.name.endswith(".xlsx") else pd.read_csv(uploaded_order)
-        st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df_order], ignore_index=True)
-        st.success("Order Data Uploaded Successfully!")
+        df_order = df_order.drop_duplicates()  # ✅ Remove Duplicates
+        st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df_order]).drop_duplicates().reset_index(drop=True)
+        st.success("Order Data Uploaded Successfully (Duplicates Removed)!")
         st.dataframe(st.session_state["machines_data"])
 
 # ✅ Upload Data Tab
@@ -57,7 +52,7 @@ elif menu == "Upload Data":
     uploaded_price = st.file_uploader("Upload Price Data", type=["xlsx", "csv"], key="price_upload")
     if uploaded_price is not None:
         df_price = pd.read_excel(uploaded_price, engine="openpyxl") if uploaded_price.name.endswith(".xlsx") else pd.read_csv(uploaded_price)
-        st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df_price], ignore_index=True)
+        st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df_price]).drop_duplicates().reset_index(drop=True)
         st.success("Price Data Uploaded Successfully!")
         st.dataframe(st.session_state["machines_data"])
 
@@ -67,7 +62,7 @@ elif menu == "View Data":
     st.write("### Total Machines & Codes")
     st.dataframe(st.session_state["machines_data"])
 
-# ✅ Analytics Tab
+# ✅ Analytics Tab (Graphs Fixed)
 elif menu == "Analytics":
     st.title("Analytics Dashboard")
     
@@ -82,27 +77,23 @@ elif menu == "Analytics":
 
         # ✅ Pie Chart with Values
         fig_pie = go.Figure(data=[
-            go.Pie(labels=df_grouped["Country"], values=df_grouped["Price"], hole=0.3, textinfo='label+percent+value')
+            go.Pie(labels=df_grouped["Country"], values=df_grouped["Price"], hole=0.3, 
+                   textinfo="label+percent+value")  # ✅ Values Visible
         ])
         fig_pie.update_layout(title_text="Shipment Distribution by Country")
 
-        # ✅ Bar Chart
+        # ✅ Bar Chart with Proper Formatting
         fig_bar = go.Figure()
         fig_bar.add_trace(go.Bar(
-            x=df_grouped["Country"],
-            y=df_grouped["Price"],
-            marker=dict(color="blue"),
-            text=df_grouped["Price"],
+            x=df_grouped["Country"], y=df_grouped["Price"],
+            marker=dict(color="blue"), text=df_grouped["Price"],
             textposition="outside"
         ))
         fig_bar.update_layout(
             title="Total Shipment Value by Country",
-            xaxis_title="Country",
-            yaxis_title="Total Price (USD)",
-            template="plotly_dark",
-            font=dict(size=14),
-            margin=dict(l=40, r=40, t=40, b=40),
-            height=500
+            xaxis_title="Country", yaxis_title="Total Price (USD)",
+            template="plotly_dark", font=dict(size=14),
+            margin=dict(l=40, r=40, t=40, b=40), height=500
         )
 
         # ✅ Show Charts
