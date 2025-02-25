@@ -3,6 +3,35 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 from streamlit_option_menu import option_menu
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# ✅ Initialize Session State for Data Storage
+if "machines_data" not in st.session_state:
+    st.session_state["machines_data"] = pd.DataFrame(columns=["Machine Code", "Machine Name", "Country", "Customer", "Price", "Last Order No", "Supplier"])
+
+# ✅ File Upload to Store Data in Session
+st.title("Upload Machine Data")
+uploaded_file = st.file_uploader("Upload Excel or CSV File", type=["xlsx", "csv"])
+
+if uploaded_file is not None:
+    df = pd.read_excel(uploaded_file, engine="openpyxl") if uploaded_file.name.endswith(".xlsx") else pd.read_csv(uploaded_file)
+    st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df], ignore_index=True)
+    st.success("Data uploaded successfully!")
+
+# ✅ Analytics Tab
+st.title("Analytics Dashboard")
+
+# ✅ Fetch Data from Session
+df_chart = st.session_state["machines_data"]
+
+if not df_chart.empty:
+    fig = px.bar(df_chart, x="Country", y="Price", title="Total Shipment Value by Country",
+                 color="Price", color_continuous_scale="blues")
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("No data available for analytics. Please upload data first!")
 
 # Database setup
 conn = sqlite3.connect("machines.db", check_same_thread=False)
