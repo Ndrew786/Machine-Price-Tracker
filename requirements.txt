@@ -1,5 +1,6 @@
 streamlit
 pandas
-openpyxl
+sqlite3
 plotly
+openpyxl
 streamlit-option-menu
