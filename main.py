@@ -14,163 +14,88 @@ c.execute('''CREATE TABLE IF NOT EXISTS machines (
                 country TEXT,
                 customer TEXT,
                 price REAL,
-                last_order_no TEXT)''')
+                last_order_no TEXT,
+                supplier TEXT)''')
 conn.commit()
 
-# Streamlit Page Config
-st.set_page_config(page_title="Machine Price Tracker", layout="wide")
+# Streamlit Page Config with Background
+st.set_page_config(page_title="Bonhoeffer Machine Tracker", layout="wide")
+st.markdown(
+    """
+    <style>
+    .main {
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        color: white;
+    }
+    .title {
+        text-align: center;
+        font-size: 36px;
+        font-weight: bold;
+        color: #ffffff;
+        background: -webkit-linear-gradient(left, #ff7e5f, #feb47b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # Sidebar Navigation with Icons
 with st.sidebar:
-    menu = option_menu("Main Menu", ["Home", "Upload Data", "View Data", "Analytics"],
-                       icons=["house", "cloud-upload", "table", "bar-chart"],
+    menu = option_menu("Main Menu", ["Home", "Order", "Upload Data", "View Data", "Analytics", "Filter Data"],
+                       icons=["house", "file-earmark-spreadsheet", "cloud-upload", "table", "bar-chart", "filter"],
                        menu_icon="cast", default_index=0)
 
 # Home Page
 if menu == "Home":
-    st.markdown("""
-    <h1 style='text-align: center;'>Welcome to Machine Price Tracker</h1>
-    <p style='text-align: center;'>Easily manage and analyze machine pricing data.</p>
-    """, unsafe_allow_html=True)
+    st.markdown("""<h1 class='title'>Bonhoeffer Machine Tracker</h1>""", unsafe_allow_html=True)
     st.image("https://source.unsplash.com/1600x900/?factory,machine", use_container_width=True)
 
-# Upload Data Page
+# Order Tab
+elif menu == "Order":
+    st.title("Upload Order Data")
+    uploaded_order = st.file_uploader("Upload Order File (Excel/CSV)", type=["xlsx", "csv"], key="order_upload")
+    if uploaded_order is not None:
+        df_order = pd.read_excel(uploaded_order, engine="openpyxl") if uploaded_order.name.endswith(".xlsx") else pd.read_csv(uploaded_order)
+        st.success("Order Data Uploaded Successfully!")
+        st.dataframe(df_order)
+
+# Upload Data Tab
 elif menu == "Upload Data":
-    st.title("Upload Excel or CSV File")
-    uploaded_file = st.file_uploader("Upload Excel or CSV File", type=["xlsx", "csv"])
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file, engine="openpyxl") if uploaded_file.name.endswith(".xlsx") else pd.read_csv(uploaded_file)
-            df.columns = df.columns.str.strip().str.lower()
-            required_columns = ["machine code", "machine name en", "machine name es", "country", "customer", "price", "last order no"]
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            if missing_columns:
-                st.error(f"Missing columns in file: {missing_columns}")
-            else:
-                st.success("File uploaded successfully!")
-                st.dataframe(df.style.set_properties(**{'background-color': '#f0f2f6', 'border': '1px solid black'}))
-                for _, row in df.iterrows():
-                    c.execute("INSERT OR IGNORE INTO machines VALUES (?, ?, ?, ?, ?, ?, ?)", tuple(row))
-                conn.commit()
-                st.success("Data processed successfully!")
-        except Exception as e:
-            st.error(f"Error reading file: {e}")
+    st.title("Upload Machine & Spare Part Prices")
+    uploaded_price = st.file_uploader("Upload Price Data", type=["xlsx", "csv"], key="price_upload")
+    if uploaded_price is not None:
+        df_price = pd.read_excel(uploaded_price, engine="openpyxl") if uploaded_price.name.endswith(".xlsx") else pd.read_csv(uploaded_price)
+        st.success("Price Data Uploaded Successfully!")
+        st.dataframe(df_price)
 
-# View Data Page
+# View Data Tab
 elif menu == "View Data":
-    st.title("View Machines Data")
-    country_filter = st.text_input("Enter country to fetch prices")
-    customer_filter = st.text_input("Enter customer to fetch prices")
-    if st.button("Fetch Prices"):
-        query = "SELECT * FROM machines WHERE country = ? AND customer = ?"
-        c.execute(query, (country_filter, customer_filter))
-        result = c.fetchall()
-        if result:
-            df_result = pd.DataFrame(result, columns=["Machine Code", "Machine Name EN", "Machine Name ES", "Country", "Customer", "Price", "Last Order No"])
-            st.dataframe(df_result.style.format({"Price": "${:,.2f}"}).set_properties(**{'border': '1px solid black'}))
-        else:
-            st.warning("No records found for the given filters.")
+    st.title("View Machine & Spare Part Data")
+    st.write("### Total Machines & Codes")
+    c.execute("SELECT machine_code, machine_name_en FROM machines")
+    machines = c.fetchall()
+    st.dataframe(pd.DataFrame(machines, columns=["Machine Code", "Machine Name"]))
 
-# Analytics Page
+# Analytics Tab
 elif menu == "Analytics":
     st.title("Analytics Dashboard")
-    c.execute("SELECT country, AVG(price) FROM machines GROUP BY country")
+    st.write("### Current Month Shipments vs Planned")
+    c.execute("SELECT country, SUM(price) FROM machines GROUP BY country")
     data = c.fetchall()
     if data:
-        df_chart = pd.DataFrame(data, columns=["Country", "Avg Price"])
-        fig = px.bar(df_chart, x="Country", y="Avg Price", title="Average Machine Price by Country",
-                     color="Avg Price", color_continuous_scale="blues")
+        df_chart = pd.DataFrame(data, columns=["Country", "Total Value"])
+        fig = px.bar(df_chart, x="Country", y="Total Value", title="Total Shipment Value by Country", color="Total Value", color_continuous_scale="blues")
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("No data available for analytics.")
+
+# Filter Data Tab
+elif menu == "Filter Data":
+    st.title("Filter Machine Prices & Suppliers")
+    uploaded_filter = st.file_uploader("Upload File (Code, Country, Client)", type=["xlsx", "csv"], key="filter_upload")
+    if uploaded_filter is not None:
+        df_filter = pd.read_excel(uploaded_filter, engine="openpyxl") if uploaded_filter.name.endswith(".xlsx") else pd.read_csv(uploaded_filter)
+        st.success("Filter Data Uploaded Successfully!")
+        st.dataframe(df_filter)
 
 conn.close()
-
-import streamlit as st
-import pandas as pd
-import sqlite3
-import sqlite3
-conn = sqlite3.connect(":memory:")  # In-memory database for Streamlit Cloud
-import pandas as pd
-import streamlit as st
-
-# Excel file read karte waqt openpyxl ka use karo
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx", "csv"])
-
-if uploaded_file is not None:
-    try:
-        if uploaded_file.name.endswith(".xlsx"):
-            df = pd.read_excel(uploaded_file, engine="openpyxl")  # 🔥 Fix applied
-        else:
-            df = pd.read_csv(uploaded_file)
-        st.write("Uploaded Data:", df)
-    except Exception as e:
-        st.error(f"Error reading file: {e}")
-
-
-# Database setup
-conn = sqlite3.connect("machines.db")
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS machines (
-                machine_code TEXT PRIMARY KEY,
-                machine_name_en TEXT,
-                machine_name_es TEXT,
-                country TEXT,
-                customer TEXT,
-                price REAL,
-                last_order_no TEXT)''')
-conn.commit()
-
-# Streamlit UI
-def main():
-    st.title("Machine Price Tracker & Order Manager")
-
-    uploaded_file = st.file_uploader("Upload Excel or CSV File", type=["xlsx", "csv"])
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith(".xlsx") else pd.read_csv(uploaded_file)
-            st.write("Uploaded Data:", df)
-        except Exception as e:
-            st.error(f"Error reading file: {e}")
-            return
-
-        for _, row in df.iterrows():
-            try:
-                machine_code, machine_name_en, machine_name_es, country, customer, price, last_order_no = (
-                    row["Machine Code"], row["Machine Name EN"], row["Machine Name ES"],
-                    row["Country"], row["Customer"], row["Price"], row["Last Order No"]
-                )
-
-                c.execute("SELECT * FROM machines WHERE machine_code = ?", (machine_code,))
-                data = c.fetchone()
-
-                if data is None:
-                    if pd.isna(price):
-                        price = st.number_input(f"Enter price for {machine_name_en} ({country}, {customer})", min_value=0.0)
-                    c.execute("INSERT INTO machines VALUES (?, ?, ?, ?, ?, ?, ?)", 
-                              (machine_code, machine_name_en, machine_name_es, country, customer, price, last_order_no))
-                else:
-                    st.write(f"Machine {machine_name_en} already exists.")
-            except KeyError as e:
-                st.error(f"Missing column in file: {e}")
-                return
-
-        conn.commit()
-        st.success("Data processed successfully!")
-
-    country_filter = st.text_input("Enter country to fetch prices")
-    customer_filter = st.text_input("Enter customer to fetch prices")
-
-    if st.button("Fetch Prices"):
-        query = "SELECT * FROM machines WHERE country = ? AND customer = ?"
-        c.execute(query, (country_filter, customer_filter))
-        result = c.fetchall()
-        if result:
-            st.write(pd.DataFrame(result, columns=["Machine Code", "Machine Name EN", "Machine Name ES", "Country", "Customer", "Price", "Last Order No"]))
-        else:
-            st.warning("No records found for the given filters.")
-
-if __name__ == "__main__":
-    main()
-    conn.close()
-
