@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 from streamlit_option_menu import option_menu
 
 # ✅ Initialize Session State for Data Storage
@@ -77,12 +77,34 @@ elif menu == "Analytics":
     # ✅ Fetch Data from Session
     df_chart = st.session_state["machines_data"]
     
-    if not df_chart.empty:
-        fig = px.bar(df_chart, x="Country", y="Price", title="Total Shipment Value by Country",
-                     color="Price", color_continuous_scale="blues")
+    if not df_chart.empty and "Country" in df_chart.columns and "Price" in df_chart.columns:
+        df_grouped = df_chart.groupby("Country")["Price"].sum().reset_index()
+
+        # ✅ Graph with Proper Formatting
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=df_grouped["Country"],
+            y=df_grouped["Price"],
+            marker=dict(color="blue"),
+            text=df_grouped["Price"],
+            textposition="outside"
+        ))
+
+        # ✅ Graph Layout Formatting
+        fig.update_layout(
+            title="Total Shipment Value by Country",
+            xaxis_title="Country",
+            yaxis_title="Total Price (USD)",
+            template="plotly_dark",  # ✅ Better Theme
+            font=dict(size=14),
+            margin=dict(l=40, r=40, t=40, b=40),
+            height=500
+        )
+
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("No data available for analytics. Please upload data first!")
+        st.warning("No valid data available for analytics. Please upload data first!")
 
 # ✅ Filter Data Tab
 elif menu == "Filter Data":
