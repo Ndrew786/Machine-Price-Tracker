@@ -1,51 +1,11 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
 import plotly.express as px
 from streamlit_option_menu import option_menu
-import streamlit as st
-import pandas as pd
-import plotly.express as px
 
 # ✅ Initialize Session State for Data Storage
 if "machines_data" not in st.session_state:
     st.session_state["machines_data"] = pd.DataFrame(columns=["Machine Code", "Machine Name", "Country", "Customer", "Price", "Last Order No", "Supplier"])
-
-# ✅ File Upload to Store Data in Session
-st.title("Upload Machine Data")
-uploaded_file = st.file_uploader("Upload Excel or CSV File", type=["xlsx", "csv"])
-
-if uploaded_file is not None:
-    df = pd.read_excel(uploaded_file, engine="openpyxl") if uploaded_file.name.endswith(".xlsx") else pd.read_csv(uploaded_file)
-    st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df], ignore_index=True)
-    st.success("Data uploaded successfully!")
-
-# ✅ Analytics Tab
-st.title("Analytics Dashboard")
-
-# ✅ Fetch Data from Session
-df_chart = st.session_state["machines_data"]
-
-if not df_chart.empty:
-    fig = px.bar(df_chart, x="Country", y="Price", title="Total Shipment Value by Country",
-                 color="Price", color_continuous_scale="blues")
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("No data available for analytics. Please upload data first!")
-
-# Database setup
-conn = sqlite3.connect("machines.db", check_same_thread=False)
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS machines (
-                machine_code TEXT PRIMARY KEY,
-                machine_name_en TEXT,
-                machine_name_es TEXT,
-                country TEXT,
-                customer TEXT,
-                price REAL,
-                last_order_no TEXT,
-                supplier TEXT)''')
-conn.commit()
 
 # Streamlit Page Config with Background
 st.set_page_config(page_title="Bonhoeffer Machine Tracker", layout="wide")
@@ -76,7 +36,7 @@ with st.sidebar:
                        icons=["house", "file-earmark-spreadsheet", "cloud-upload", "table", "bar-chart", "filter"],
                        menu_icon="cast", default_index=0)
 
-# ✅ Home Page (IF condition missing tha, ab fix kiya)
+# ✅ Home Page
 if menu == "Home":
     st.markdown("""<h1 class='title'>Bonhoeffer Machine Tracker</h1>""", unsafe_allow_html=True)
     st.image("https://source.unsplash.com/1600x900/?factory,machine", use_container_width=True)
@@ -87,8 +47,9 @@ elif menu == "Order":
     uploaded_order = st.file_uploader("Upload Order File (Excel/CSV)", type=["xlsx", "csv"], key="order_upload")
     if uploaded_order is not None:
         df_order = pd.read_excel(uploaded_order, engine="openpyxl") if uploaded_order.name.endswith(".xlsx") else pd.read_csv(uploaded_order)
+        st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df_order], ignore_index=True)
         st.success("Order Data Uploaded Successfully!")
-        st.dataframe(df_order)
+        st.dataframe(st.session_state["machines_data"])
 
 # ✅ Upload Data Tab
 elif menu == "Upload Data":
@@ -96,36 +57,32 @@ elif menu == "Upload Data":
     uploaded_price = st.file_uploader("Upload Price Data", type=["xlsx", "csv"], key="price_upload")
     if uploaded_price is not None:
         df_price = pd.read_excel(uploaded_price, engine="openpyxl") if uploaded_price.name.endswith(".xlsx") else pd.read_csv(uploaded_price)
+        st.session_state["machines_data"] = pd.concat([st.session_state["machines_data"], df_price], ignore_index=True)
         st.success("Price Data Uploaded Successfully!")
-        st.dataframe(df_price)
+        st.dataframe(st.session_state["machines_data"])
 
 # ✅ View Data Tab
 elif menu == "View Data":
     st.title("View Machine & Spare Part Data")
     st.write("### Total Machines & Codes")
-    c.execute("SELECT machine_code, machine_name_en FROM machines")
-    machines = c.fetchall()
-    st.dataframe(pd.DataFrame(machines, columns=["Machine Code", "Machine Name"]))
+    st.dataframe(st.session_state["machines_data"])
 
-# ✅ Analytics Tab (Correct Position Me Rakha)
+# ✅ Analytics Tab
 elif menu == "Analytics":
     st.title("Analytics Dashboard")
-
-    # ✅ Auto Refresh Analytics
+    
+    # ✅ Refresh Button for Live Updates
     st.button("Refresh Analytics", on_click=st.cache_data.clear)
-
-    # ✅ Fetch Latest Data from Database
-    conn = sqlite3.connect("machines.db", check_same_thread=False)
-    query = "SELECT country, SUM(price) FROM machines GROUP BY country"
-    df_chart = pd.read_sql(query, conn)
-    conn.close()
-
+    
+    # ✅ Fetch Data from Session
+    df_chart = st.session_state["machines_data"]
+    
     if not df_chart.empty:
-        fig = px.bar(df_chart, x="country", y="SUM(price)", title="Total Shipment Value by Country",
-                     color="SUM(price)", color_continuous_scale="blues")
+        fig = px.bar(df_chart, x="Country", y="Price", title="Total Shipment Value by Country",
+                     color="Price", color_continuous_scale="blues")
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("No data available for analytics.")
+        st.warning("No data available for analytics. Please upload data first!")
 
 # ✅ Filter Data Tab
 elif menu == "Filter Data":
@@ -135,5 +92,3 @@ elif menu == "Filter Data":
         df_filter = pd.read_excel(uploaded_filter, engine="openpyxl") if uploaded_filter.name.endswith(".xlsx") else pd.read_csv(uploaded_filter)
         st.success("Filter Data Uploaded Successfully!")
         st.dataframe(df_filter)
-
-conn.close()
