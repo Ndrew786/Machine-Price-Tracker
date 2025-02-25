@@ -32,7 +32,7 @@ if menu == "Home":
     <h1 style='text-align: center;'>Welcome to Machine Price Tracker</h1>
     <p style='text-align: center;'>Easily manage and analyze machine pricing data.</p>
     """, unsafe_allow_html=True)
-    st.image("https://source.unsplash.com/1600x900/?factory,machine", use_column_width=True)
+    st.image("https://source.unsplash.com/1600x900/?factory,machine", use_container_width=True)
 
 # Upload Data Page
 elif menu == "Upload Data":
