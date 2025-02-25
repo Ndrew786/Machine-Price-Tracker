@@ -3,6 +3,25 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 from streamlit_option_menu import option_menu
+# Analytics Tab
+elif menu == "Analytics":
+    st.title("Analytics Dashboard")
+
+    # ✅ Clear Cache for Live Updates
+    st.button("Refresh Analytics", on_click=st.cache_data.clear)
+
+    # ✅ Fetch Latest Data from MySQL
+    conn = get_connection()
+    query = "SELECT country, SUM(price) FROM machines GROUP BY country"
+    df_chart = pd.read_sql(query, conn)
+    conn.close()
+
+    if not df_chart.empty:
+        fig = px.bar(df_chart, x="country", y="SUM(price)", title="Total Shipment Value by Country",
+                     color="SUM(price)", color_continuous_scale="blues")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No data available for analytics.")
 
 # Database setup
 conn = sqlite3.connect("machines.db", check_same_thread=False)
