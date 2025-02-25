@@ -13,9 +13,9 @@ st.set_page_config(page_title="Bonhoeffer Machine Tracker", layout="wide")
 st.markdown(
     """
     <style>
-    .main { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
+    .main { background: white; color: black; }
     .title {
-        text-align: center; font-size: 36px; font-weight: bold; color: #ffffff;
+        text-align: center; font-size: 36px; font-weight: bold; color: #ff5733;
         background: -webkit-linear-gradient(left, #ff7e5f, #feb47b);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
@@ -75,25 +75,24 @@ elif menu == "Analytics":
     if not df_chart.empty and "Country" in df_chart.columns and "Price" in df_chart.columns:
         df_grouped = df_chart.groupby("Country")["Price"].sum().reset_index()
 
-        # ✅ Pie Chart with Values
+        # ✅ Colorful Pie Chart
         fig_pie = go.Figure(data=[
             go.Pie(labels=df_grouped["Country"], values=df_grouped["Price"], hole=0.3, 
-                   textinfo="label+percent+value")  # ✅ Values Visible
+                   textinfo="label+percent+value", marker=dict(colors=px.colors.qualitative.Pastel))
         ])
         fig_pie.update_layout(title_text="Shipment Distribution by Country")
 
-        # ✅ Bar Chart with Proper Formatting
+        # ✅ Colorful Bar Chart
         fig_bar = go.Figure()
         fig_bar.add_trace(go.Bar(
             x=df_grouped["Country"], y=df_grouped["Price"],
-            marker=dict(color="blue"), text=df_grouped["Price"],
+            marker=dict(color=px.colors.qualitative.Vivid), text=df_grouped["Price"],
             textposition="outside"
         ))
         fig_bar.update_layout(
             title="Total Shipment Value by Country",
             xaxis_title="Country", yaxis_title="Total Price (USD)",
-            template="plotly_dark", font=dict(size=14),
-            margin=dict(l=40, r=40, t=40, b=40), height=500
+            font=dict(size=14), margin=dict(l=40, r=40, t=40, b=40), height=500
         )
 
         # ✅ Show Charts
