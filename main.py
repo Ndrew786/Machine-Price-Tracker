@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import sqlite3
+conn = sqlite3.connect(":memory:")  # In-memory database for Streamlit Cloud
+
 
 # Database setup
 conn = sqlite3.connect("machines.db")
