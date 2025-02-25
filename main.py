@@ -3,25 +3,6 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 from streamlit_option_menu import option_menu
-# Analytics Tab
-elif menu == "Analytics":
-    st.title("Analytics Dashboard")
-
-    # ✅ Clear Cache for Live Updates
-    st.button("Refresh Analytics", on_click=st.cache_data.clear)
-
-    # ✅ Fetch Latest Data from MySQL
-    conn = get_connection()
-    query = "SELECT country, SUM(price) FROM machines GROUP BY country"
-    df_chart = pd.read_sql(query, conn)
-    conn.close()
-
-    if not df_chart.empty:
-        fig = px.bar(df_chart, x="country", y="SUM(price)", title="Total Shipment Value by Country",
-                     color="SUM(price)", color_continuous_scale="blues")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("No data available for analytics.")
 
 # Database setup
 conn = sqlite3.connect("machines.db", check_same_thread=False)
@@ -66,12 +47,12 @@ with st.sidebar:
                        icons=["house", "file-earmark-spreadsheet", "cloud-upload", "table", "bar-chart", "filter"],
                        menu_icon="cast", default_index=0)
 
-# Home Page
+# ✅ Home Page (IF condition missing tha, ab fix kiya)
 if menu == "Home":
     st.markdown("""<h1 class='title'>Bonhoeffer Machine Tracker</h1>""", unsafe_allow_html=True)
     st.image("https://source.unsplash.com/1600x900/?factory,machine", use_container_width=True)
 
-# Order Tab
+# ✅ Order Tab
 elif menu == "Order":
     st.title("Upload Order Data")
     uploaded_order = st.file_uploader("Upload Order File (Excel/CSV)", type=["xlsx", "csv"], key="order_upload")
@@ -80,7 +61,7 @@ elif menu == "Order":
         st.success("Order Data Uploaded Successfully!")
         st.dataframe(df_order)
 
-# Upload Data Tab
+# ✅ Upload Data Tab
 elif menu == "Upload Data":
     st.title("Upload Machine & Spare Part Prices")
     uploaded_price = st.file_uploader("Upload Price Data", type=["xlsx", "csv"], key="price_upload")
@@ -89,7 +70,7 @@ elif menu == "Upload Data":
         st.success("Price Data Uploaded Successfully!")
         st.dataframe(df_price)
 
-# View Data Tab
+# ✅ View Data Tab
 elif menu == "View Data":
     st.title("View Machine & Spare Part Data")
     st.write("### Total Machines & Codes")
@@ -97,18 +78,27 @@ elif menu == "View Data":
     machines = c.fetchall()
     st.dataframe(pd.DataFrame(machines, columns=["Machine Code", "Machine Name"]))
 
-# Analytics Tab
+# ✅ Analytics Tab (Correct Position Me Rakha)
 elif menu == "Analytics":
     st.title("Analytics Dashboard")
-    st.write("### Current Month Shipments vs Planned")
-    c.execute("SELECT country, SUM(price) FROM machines GROUP BY country")
-    data = c.fetchall()
-    if data:
-        df_chart = pd.DataFrame(data, columns=["Country", "Total Value"])
-        fig = px.bar(df_chart, x="Country", y="Total Value", title="Total Shipment Value by Country", color="Total Value", color_continuous_scale="blues")
-        st.plotly_chart(fig, use_container_width=True)
 
-# Filter Data Tab
+    # ✅ Auto Refresh Analytics
+    st.button("Refresh Analytics", on_click=st.cache_data.clear)
+
+    # ✅ Fetch Latest Data from Database
+    conn = sqlite3.connect("machines.db", check_same_thread=False)
+    query = "SELECT country, SUM(price) FROM machines GROUP BY country"
+    df_chart = pd.read_sql(query, conn)
+    conn.close()
+
+    if not df_chart.empty:
+        fig = px.bar(df_chart, x="country", y="SUM(price)", title="Total Shipment Value by Country",
+                     color="SUM(price)", color_continuous_scale="blues")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No data available for analytics.")
+
+# ✅ Filter Data Tab
 elif menu == "Filter Data":
     st.title("Filter Machine Prices & Suppliers")
     uploaded_filter = st.file_uploader("Upload File (Code, Country, Client)", type=["xlsx", "csv"], key="filter_upload")
